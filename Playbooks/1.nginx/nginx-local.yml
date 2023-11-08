@@ -1,0 +1,64 @@
+---
+- name: Play For Installing Nginx On WebServers
+  hosts: pvt
+  gather_facts: yes
+  become: yes
+  become_user: root
+  #serial: 1
+  vars:
+    AWS_ACCOUNT: "721834156908"
+  tasks:
+  - name: Print Variable
+    debug:
+     msg: System {{ inventory_hostname }} has variable {{ AWS_ACCOUNT }}
+
+  - name: Print Variable Sesitive
+    debug:
+     msg: System {{ inventory_hostname }} has variable {{ AWS_ACCOUNT }}
+    no_log: True
+
+  - name: Perform apt update & Install basic packages
+    shell: apt update && apt install -y unzip jq net-tools
+    when: (ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_version'] == "20.04")
+
+  - name: Install Nginx Webserver Application
+    apt:
+      name: nginx
+      state: latest
+      update_cache: yes
+
+  - name: Start Nginx Service
+    service:
+      name: nginx
+      state: started
+  tags:
+  - nginx
+
+- name: Play For Copying File
+  hosts: testserver01
+  become: yes
+  become_user: root
+  tasks:
+  - name: Copy html file
+    copy:
+      src: /root/index.html
+      dest: /var/www/html/index.nginx-debian.html
+      owner: root
+      group: root
+      mode: '0644'
+  - name: Copy scorekeeper.js file
+    copy:
+      src: /root/scorekeeper.js
+      dest: /var/www/html/scorekeeper.js
+      owner: root
+      group: root
+      mode: '0644'
+  - name: Copy style.css file
+    copy:
+      src: /root/style.css
+      dest: /var/www/html/style.css
+      owner: root
+      group: root
+      mode: '0644'
+  tags:
+  - files

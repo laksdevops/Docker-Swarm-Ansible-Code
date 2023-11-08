@@ -1,0 +1,64 @@
+#https://medium.com/splunkuserdeveloperadministrator/creating-mysql-databases-with-ansible-925ab28598ab
+#sudo ansible-galaxy install  --roles-path=/etc/ansible/roles/ geerlingguy.mysql --force
+# ansible-vault encrypt_string 'SecretPassword' --name 'user_password'
+---
+- name: Install MySQL Using Ansible Role
+  hosts: all
+  become: yes
+  become_user: root
+  vars:
+   user_password: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          38343764383839393962396235386232346436666165663064306233623562386364393033653164
+          3361393632656233653339356237306236386134396639650a303430353134643435326665623335
+          63663862303566313835663837613261373932303863643639326364306631633735343030373830
+          3064656238333261340a376338386262343633396338666636666631353636646633323734326539
+          6365
+  roles:
+  - { role: geerlingguy.mysql }
+  tasks:
+  - name: create a new database 
+    mysql_db: >
+      name=myflixdb 
+      state=present 
+      login_user=root
+    tags:
+    - mysql
+  - name: Copy sample data to tmp folder 
+    copy: src=/root/ansiblecode/Playbooks/6.Roles-Collections/dump.sql dest=/tmp/dump.sql
+    tags:
+    - mysql
+  - name: Nnsert sample data into database
+    mysql_db: name=myflixdb state=import target=/tmp/dump.sql
+    tags:
+    - mysql
+  # - name: Add records to MySQL
+  #   mysql_db: name=myflixdb state=import target=/tmp/dump.sql
+  #   tags:
+  #   - mysql
+
+#Install mysql collection - ansible-galaxy collection install community.mysql
+  - name: Removes all anonymous user accounts
+    community.mysql.mysql_user:
+      name: ''
+      host_all: yes
+      state: absent
+
+  - name: Create database user with name 'bob' and password from vault.
+    community.mysql.mysql_user:
+      name: bob
+      password: "{{ '%s' | format(user_password) | regex_replace('\n', '') | password_hash('sha512') }}"
+      priv: '*.*:ALL,GRANT'
+      host: "localhost"
+      state: present
+
+  - name: Create database user with name 'charlie' and password from vault.
+    community.mysql.mysql_user:
+      name: charlie
+      password: "{{ '%s' | format(user_password) | regex_replace('\n', '') | password_hash('sha512') }}"
+      priv: '*.*:ALL,GRANT'
+      host: 'localhost'
+      state: present
+    
+
+  

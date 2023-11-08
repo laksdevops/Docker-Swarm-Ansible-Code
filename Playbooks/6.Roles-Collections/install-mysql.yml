@@ -1,0 +1,8 @@
+#ansible-galaxy install geerlingguy.mysql
+---
+- name: Install MySQL Using Ansible Role
+  hosts: testserver01
+  become: yes
+  become_user: root
+  roles:
+  - { role: geerlingguy.mysql }

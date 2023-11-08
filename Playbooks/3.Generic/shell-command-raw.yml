@@ -1,0 +1,32 @@
+---
+- name: Testing SHELL COMMAND RAW
+  hosts: testserver01
+  become: true
+  become_user: root
+  tasks:
+    - name: Run SHELL Module
+      shell: >
+        echo "Welcome
+        To DevSecOps Class
+        Batch Number B36 ${HOME}"
+
+    - name: Run  Env Using SHELL Variables
+      shell: env && df -h && free
+
+    - name: Run COMMAND Module
+      command: >
+        echo "Welcome
+        To DevSecOps Class
+        Batch Number B36 ${HOME}"
+
+    - name: Run  Env Using COMMAND Variables
+      command: env && df -h && free
+
+    - name: Run RAW Module
+      raw: >
+        echo "Welcome
+        To DevSecOps Class
+        Batch Number B36 ${HOME}"   
+
+    - name: Run  Env Using RAW Variables
+      raw: env && df -h && free 

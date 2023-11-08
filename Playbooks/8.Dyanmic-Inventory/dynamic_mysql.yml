@@ -1,0 +1,74 @@
+#Install below before executing the playbook
+#ansible-galaxy collection install community.mysql
+#ansible-galaxy install geerlingguy.mysql
+#ansible-galaxy collection install nginxinc.nginx_core
+---
+  - name: Play for Install MySQL on DBServers
+    hosts: "{{ variable_host | default('tag_Env_Prod') }}"
+    gather_facts: yes #yes or no
+    become: yes
+    become_user: root
+    roles:
+     - geerlingguy.mysql #Role not part of Collection
+     - nginxinc.nginx_core.nginx #Role Part of nginxinc.nginx_core
+    collections:
+      - community.mysql
+      - nginxinc.nginx_core
+    vars:
+     bob_db_password: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          38343764383839393962396235386232346436666165663064306233623562386364393033653164
+          3361393632656233653339356237306236386134396639650a303430353134643435326665623335
+          63663862303566313835663837613261373932303863643639326364306631633735343030373830
+          3064656238333261340a376338386262343633396338666636666631353636646633323734326539
+          6365
+    tasks:
+      - name: Create a new database with name 'superstar'
+        community.mysql.mysql_db: #Module Part of mysql Collection
+         name: superstar
+         state: present
+         login_user: root
+         login_password: "{{ mysql_root_password }}"
+      - name: Create a new database with name 'megastar'
+        community.mysql.mysql_db: #Module Part of mysql Collection
+         name: megastar
+         state: present
+         login_user: root
+         login_password: "{{ mysql_root_password }}"
+      - name: Create a new database with name 'myflixdb'
+        community.mysql.mysql_db: #Module Part of mysql Collection
+         name: myflixdb
+         state: present
+         login_user: root
+         login_password: "{{ mysql_root_password }}"
+      - name: check if Databases
+        shell: mysql -e 'SHOW DATABASES;'
+        register: dblist
+
+      - debug:
+         var: dblist.stdout
+
+      - name: Copy sql file to servers
+        copy: >
+          src="{{ item }}"
+          dest=/tmp/
+          owner=root
+          group=root
+          mode=0644
+        with_items:
+        - myflixdb.sql
+        - superstardb.sql
+        - megastardb.sql
+
+      - name: Create database user with name 'bob' and password from vault' with all database privileges
+        community.mysql.mysql_user:
+         name: bob
+         password: "{{ bob_db_password }}"
+         priv: '*.*:ALL'
+         state: present
+      - name: Import file.sql to myflixdb
+        shell: mysql -u root myflixdb < /tmp/myflixdb.sql
+      - name: Import file.sql to superstar
+        shell: mysql -u root superstar < /tmp/superstardb.sql
+      - name: Import file.sql to megastar
+        shell: mysql -u root megastar < /tmp/megastardb.sql
